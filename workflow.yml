@@ -1,0 +1,134 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+
+metadata:
+  generateName: elt-
+  labels:
+    "workflows.argoproj.io/archive-strategy": "false"
+  annotations:
+    "workflows.argoproj.io/description": |
+      Example workflow for ELT of OSM data.
+
+spec:
+  entrypoint: elt
+
+  volumes:
+
+    - name: bronze
+      persistentVolumeClaim:
+        claimName: bronze
+
+    - name: silver
+      persistentVolumeClaim:
+        claimName: silver
+
+    - name: gold
+      persistentVolumeClaim:
+        claimName: gold
+
+  templates:
+
+    - name: dl
+      inputs:
+        parameters:
+          - name: url
+          - name: target
+      container:
+        image: alpine:latest
+        command:
+          - wget
+        args:
+          - "{{ inputs.parameters.url }}"
+          - -O
+          - "{{ inputs.parameters.target }}"
+        volumeMounts:
+          - name: bronze
+            mountPath: /data/datalake/bronze/
+
+    - name: transform
+      inputs:
+        parameters:
+          - name: file
+          - name: target
+      container:
+        image: osm2parquet:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - sh
+        args:
+          - osm2parquet.sh
+          - "/data/datalake/bronze/osm/{{ inputs.parameters.file }}"
+          - "/data/datalake/silver/osm/{{ inputs.parameters.target }}"
+        volumeMounts:
+          - name: bronze
+            mountPath: /data/datalake/bronze
+          - name: silver
+            mountPath: /data/datalake/silver
+
+    - name: merge
+      container:
+        image: alpine:latest
+        command:
+          - cp
+        args:
+          - -R
+          - /data/datalake/silver/osm/
+          - /data/datalake/gold/map/
+        volumeMounts:
+          - name: silver
+            mountPath: /data/datalake/silver
+          - name: gold
+            mountPath: /data/datalake/gold
+
+    - name: elt
+      dag:
+
+        tasks:
+
+          - name: dlse
+            template: dl
+            arguments:
+              parameters:
+                - name: url
+                  value: http://download.geofabrik.de/europe/andorra-latest.osm.pbf
+                - name: target
+                  value: /data/datalake/bronze/osm/sweden-latest.osm.pbf
+
+          - name: dldk
+            template: dl
+            arguments:
+              parameters:
+                - name: url
+                  value: http://download.geofabrik.de/europe/isle-of-man-latest.osm.pbf
+                - name: target
+                  value: /data/datalake/bronze/osm/denmark-latest.osm.pbf
+
+          - name: dlno
+            template: dl
+            arguments:
+              parameters:
+                - name: url
+                  value: http://download.geofabrik.de/europe/malta-latest.osm.pbf
+                - name: target
+                  value: /data/datalake/bronze/osm/norway-latest.osm.pbf
+
+          - name: transformse
+            dependencies: [dlse]
+            template: transform
+            arguments:
+              parameters:
+                - name: file
+                  value: sweden-latest.osm.pbf
+                - name: target
+                  value: sweden
+
+          - name: transformdk
+            dependencies: [dldk]
+            template: transform
+            arguments:
+              parameters:
+                - name: file
+                  value: denmark-latest.osm.pbf
+                - name: target
+                  value: denmark
