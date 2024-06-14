@@ -17,7 +17,7 @@ FROM (
 )
 GROUP BY id;
 
-PRAGMA create_fts_index('wayaddr', 'id', 'tags');
+PRAGMA create_fts_index('wayaddr', 'id', 'tags', overwrite=1);
 
 -- create index over nodes that represent addresses.
 
@@ -33,7 +33,7 @@ FROM (
 )
 GROUP BY id;
 
-PRAGMA create_fts_index('nodeaddr', 'id', 'tags');
+PRAGMA create_fts_index('nodeaddr', 'id', 'tags', overwrite=1);
 
 -- macros for simple address search
 
@@ -66,7 +66,7 @@ CREATE OR REPLACE MACRO addr_search_node(q) AS TABLE
 -- Highways
 -----------------------------------------------------------------
 
-DROP MACRO l2dist CASCADE;
+DROP MACRO IF EXISTS l2dist CASCADE;
 
 CREATE OR REPLACE MACRO l2dist(p_lat, p_lon, q_lat, q_lon) AS
 sqrt((p_lat - q_lat) ^ 2 + (p_lon - q_lon) ^ 2);

@@ -1,10 +1,10 @@
-CREATE TABLE node AS SELECT * FROM '**/nodes.parquet';
-CREATE TABLE nodetag AS SELECT * FROM '**/node-tags.parquet';
+CREATE OR REPLACE TABLE node AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'nodes.parquet');
+CREATE OR REPLACE TABLE nodetag AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'node-tags.parquet');
 
-CREATE TABLE way AS SELECT * FROM '**/ways.parquet';
-CREATE TABLE waytag AS SELECT * FROM '**/way-tags.parquet';
-CREATE TABLE waynode AS SELECT * FROM '**/way-nodes.parquet';
+CREATE OR REPLACE TABLE way AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'ways.parquet');
+CREATE OR REPLACE TABLE waytag AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'way-tags.parquet');
+CREATE OR REPLACE TABLE waynode AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'way-nodes.parquet');
 
-CREATE TABLE rel AS SELECT * FROM '**/relations.parquet';
-CREATE TABLE reltag AS SELECT * FROM '**/relation-tags.parquet';
-CREATE TABLE relmem AS SELECT * FROM '**/relation-members.parquet';
+CREATE OR REPLACE TABLE rel AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'relations.parquet');
+CREATE OR REPLACE TABLE reltag AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'relation-tags.parquet');
+CREATE OR REPLACE TABLE relmem AS SELECT * FROM read_parquet(getenv('OSM_DATA_DIR') || 'relation-members.parquet');
