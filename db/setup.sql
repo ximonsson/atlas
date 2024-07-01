@@ -71,7 +71,6 @@ DROP MACRO IF EXISTS l2dist CASCADE;
 CREATE OR REPLACE MACRO l2dist(p_lat, p_lon, q_lat, q_lon) AS
 sqrt((p_lat - q_lat) ^ 2 + (p_lon - q_lon) ^ 2);
 
-
 -- find ways that are highways (streets, highway, etc.)
 CREATE OR REPLACE VIEW highway AS
 SELECT
@@ -86,7 +85,7 @@ WHERE
 --		creating a table here speeds a lot of things up for later
 CREATE OR REPLACE TABLE highway_node AS
 SELECT
-	highway.id, waynode.node, node.lat, node.lon
+	highway.id as way, waynode.node, node.lat, node.lon
 FROM highway
 LEFT JOIN waynode ON highway.id = waynode.way
 LEFT JOIN node ON node.id = waynode.node;
@@ -98,15 +97,15 @@ CREATE OR REPLACE VIEW highway_node_distance AS
 SELECT
 	*, l2dist(lag(lat) OVER w, lag(lon) OVER w, lat, lon) AS dist
 FROM highway_node
-WINDOW w AS (PARTITION BY id);
+WINDOW w AS (PARTITION BY way);
 
 -- highway sum of distance
 CREATE OR REPLACE VIEW highway_distance AS
 SELECT
-	id, sum(dist) AS dist
+	way, sum(dist) AS dist
 FROM
 	highway_node_distance
-GROUP BY id;
+GROUP BY way;
 
 -- closest node on a highway from a given node.
 CREATE OR REPLACE MACRO dist_to_highway_node(n) AS TABLE
@@ -118,8 +117,9 @@ SELECT
 		lat,
 		lon
 	) AS d
-FROM highway_node
-ORDER BY d ASC;
+FROM (
+	SELECT DISTINCT ON (node) * FROM highway_node
+);
 
 -- Buildings
 -----------------------------------------------------------------
